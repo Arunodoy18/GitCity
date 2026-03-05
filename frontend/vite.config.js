@@ -11,9 +11,9 @@ export default defineConfig({
     chunkSizeWarningLimit: 1200,
     rollupOptions: {
       output: {
-        manualChunks: {
-          'vendor-three': ['three'],
-          'vendor-react': ['react', 'react-dom'],
+        manualChunks(id) {
+          if (id.includes('node_modules/three')) return 'vendor-three'
+          if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/')) return 'vendor-react'
         },
       },
     },
