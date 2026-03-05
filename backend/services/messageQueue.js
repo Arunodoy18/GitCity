@@ -156,9 +156,11 @@ export async function consumeEvents(stream, group, consumer, count = 10, blockMs
       return messages
     } catch (err) {
       // Don't spam logs for timeout/connection issues
-      if (!err.message?.includes('NOGROUP')) {
+      if (!err.message?.includes('NOGROUP') && !err.message?.includes('writeable') && !err.message?.includes('enableOfflineQueue')) {
         console.warn(`[MessageQueue] XREADGROUP error: ${err.message}`)
       }
+      // Delay to prevent tight loop spinning when disconnected
+      await new Promise(r => setTimeout(r, 2000))
       return []
     }
   }
