@@ -50,7 +50,7 @@ export default function FlyControls({ enabled, onExit }) {
 
   /* ---- Keyboard ---- */
   const onKeyDown = useCallback((e) => {
-    if (!locked.current) return
+    if (!enabled) return
     const c = e.code
     if (c === 'KeyW' || c === 'ArrowUp')    keys.current.forward  = true
     if (c === 'KeyS' || c === 'ArrowDown')   keys.current.backward = true
@@ -60,7 +60,7 @@ export default function FlyControls({ enabled, onExit }) {
     if (c === 'KeyC' || c === 'ControlLeft' || c === 'ControlRight') keys.current.down = true
     if (c === 'ShiftLeft' || c === 'ShiftRight') keys.current.sprint = true
     if (c === 'Escape' && document.pointerLockElement) document.exitPointerLock()
-  }, [])
+  }, [enabled])
 
   const onKeyUp = useCallback((e) => {
     const c = e.code
@@ -89,7 +89,13 @@ export default function FlyControls({ enabled, onExit }) {
       return
     }
 
-    gl.domElement.requestPointerLock()
+    gl.domElement.requestPointerLock?.()
+
+    // Also allow click-to-lock (browsers may reject the auto-request above)
+    const onClick = () => {
+      if (!document.pointerLockElement) gl.domElement.requestPointerLock?.()
+    }
+    gl.domElement.addEventListener('click', onClick)
 
     // Seed euler from current camera facing direction
     euler.current.y = Math.atan2(-camera.position.x, -camera.position.z)
@@ -102,6 +108,7 @@ export default function FlyControls({ enabled, onExit }) {
 
     const saved = keys.current
     return () => {
+      gl.domElement.removeEventListener('click', onClick)
       document.removeEventListener('mousemove', onMouseMove)
       document.removeEventListener('keydown', onKeyDown)
       document.removeEventListener('keyup', onKeyUp)
@@ -113,7 +120,7 @@ export default function FlyControls({ enabled, onExit }) {
 
   /* ---- Per-frame physics ---- */
   useFrame(({ camera: cam }, delta) => {
-    if (!enabled || !locked.current) return
+    if (!enabled) return
 
     // Clamp delta to avoid huge jumps after tab-switch
     const dt = Math.min(delta, 0.1)
@@ -121,10 +128,12 @@ export default function FlyControls({ enabled, onExit }) {
     const k = keys.current
     const accel = k.sprint ? BASE_SPEED * SPRINT_MULT : BASE_SPEED
 
-    // --- Look ---
-    cam.rotation.order = 'YXZ'
-    cam.rotation.y = euler.current.y
-    cam.rotation.x = euler.current.x
+    // --- Look (only when pointer-locked) ---
+    if (locked.current) {
+      cam.rotation.order = 'YXZ'
+      cam.rotation.y = euler.current.y
+      cam.rotation.x = euler.current.x
+    }
 
     // --- Horizontal acceleration ---
     const wish = new Vector3()

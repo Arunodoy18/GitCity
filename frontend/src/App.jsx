@@ -254,6 +254,12 @@ function App() {
     return <LandingPage onEnter={handleEnterCity} onLogin={handleLandingLogin} />
   }
 
+  const kbdStyle = {
+    display: 'inline-block', padding: '2px 7px', background: 'rgba(255,255,255,0.08)',
+    border: '1px solid rgba(255,255,255,0.12)', borderRadius: 4,
+    color: '#8cf', fontSize: 10, fontWeight: 700, fontFamily: 'monospace',
+  }
+
   return (
     <div className="app">
       {/* 3D Scene — composed from modular managers */}
@@ -280,6 +286,36 @@ function App() {
 
       {/* Feature Navigation */}
       <FeatureNav activeFeature={activeFeature} onFeatureChange={handleFeatureChange} />
+
+      {/* Fly mode HUD */}
+      {flyMode && (
+        <div style={{
+          position: 'absolute', bottom: 80, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 200, display: 'flex', gap: 16, alignItems: 'center',
+          padding: '10px 20px', background: 'rgba(0,0,0,0.7)',
+          border: '1px solid rgba(100,200,255,0.15)', borderRadius: 12,
+          backdropFilter: 'blur(12px)', animation: 'fadeIn 0.4s ease',
+          pointerEvents: 'none',
+        }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+            <div style={{ display: 'flex', gap: 3 }}>
+              <kbd style={kbdStyle}>W</kbd>
+            </div>
+            <div style={{ display: 'flex', gap: 3 }}>
+              <kbd style={kbdStyle}>A</kbd>
+              <kbd style={kbdStyle}>S</kbd>
+              <kbd style={kbdStyle}>D</kbd>
+            </div>
+          </div>
+          <span style={{ color: '#556', fontSize: 11 }}>Move</span>
+          <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.06)' }} />
+          <span style={{ color: '#556', fontSize: 11 }}>
+            <kbd style={kbdStyle}>Space</kbd> Up &nbsp; <kbd style={kbdStyle}>C</kbd> Down &nbsp; <kbd style={kbdStyle}>Shift</kbd> Sprint
+          </span>
+          <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.06)' }} />
+          <span style={{ color: '#667', fontSize: 11 }}>Click to look · <kbd style={kbdStyle}>Esc</kbd> exit</span>
+        </div>
+      )}
 
       {/* UI Overlay */}
       <AuthPanel user={authUser} loading={authLoading} onLogin={login} onLogout={logout} />
