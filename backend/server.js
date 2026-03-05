@@ -99,7 +99,7 @@ app.use((err, req, res, _next) => {
 // Attach WebSocket for live commit mode
 attachWebSocket(server)
 
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`\n🏙️  GitCity SaaS Backend`)
   console.log(`   Port:     http://localhost:${PORT}`)
   console.log(`   Frontend: ${FRONTEND_URL}`)
