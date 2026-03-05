@@ -1,5 +1,8 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 
+// Landing page
+import LandingPage from './landing/LandingPage'
+
 // Core — Scene, rendering, controls
 import SceneManager from './core/SceneManager'
 import RendererManager from './core/RendererManager'
@@ -42,6 +45,11 @@ import { DistrictOverlay, DistrictLegend } from './features/LanguageDistricts'
 import './App.css'
 
 function App() {
+  // Landing page state — show for non-authenticated visitors
+  const [showLanding, setShowLanding] = useState(() => {
+    return !localStorage.getItem('gitcity_token') && !localStorage.getItem('gitcity_explored')
+  })
+
   // Scale to 10,000 buildings for a real city feel
   const mockUsers = useMemo(() => {
     const mock = generateMockUsers(9995)
@@ -75,6 +83,21 @@ function App() {
 
   // SaaS: Authentication
   const { user: authUser, loading: authLoading, login, logout } = useAuth()
+
+  // Hide landing once authenticated
+  useEffect(() => {
+    if (authUser) setShowLanding(false)
+  }, [authUser])
+
+  // Landing page callbacks
+  const handleEnterCity = useCallback(() => {
+    localStorage.setItem('gitcity_explored', '1')
+    setShowLanding(false)
+  }, [])
+
+  const handleLandingLogin = useCallback(() => {
+    login()
+  }, [login])
 
   // Auto-fetch authenticated user's GitHub data on login
   const [authCityLoading, setAuthCityLoading] = useState(false)
@@ -225,6 +248,11 @@ function App() {
   const trackedUsernames = useMemo(() => {
     return liveUsers.map(u => u.username).slice(0, 10)
   }, [liveUsers])
+
+  // ─── LANDING PAGE ─────────────────────────────────────────
+  if (showLanding) {
+    return <LandingPage onEnter={handleEnterCity} onLogin={handleLandingLogin} />
+  }
 
   return (
     <div className="app">
