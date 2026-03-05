@@ -32,10 +32,7 @@ services:
           name: gitcity-db
           property: connectionString
       - key: REDIS_URL
-        fromService:
-          name: gitcity-redis
-          type: redis
-          property: connectionString
+        sync: false  # Create a Redis instance manually in Render dashboard, then paste the URL here
       - key: GITHUB_WEBHOOK_SECRET
         sync: false
 
@@ -46,9 +43,3 @@ databases:
     region: oregon
     databaseName: gitcity
     user: gitcity
-
-  # ─── Redis ─────────────────────────────────────────────────
-  - name: gitcity-redis
-    plan: free
-    region: oregon
-    maxmemoryPolicy: allkeys-lru
