@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitCity — Activity Visualizer</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #060610; color: #fff; font-family: system-ui, sans-serif; }
+    #city-container { width: 100vw; height: 70vh; }
+    .header {
+      padding: 20px 30px;
+      background: rgba(255,255,255,0.03);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      display: flex; align-items: center; gap: 20px;
+    }
+    .header h1 { font-size: 18px; font-weight: 800; letter-spacing: 2px; }
+    .controls { display: flex; gap: 10px; margin-left: auto; }
+    input {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; padding: 8px 14px;
+      color: #fff; font-size: 13px; outline: none;
+      width: 200px;
+    }
+    button {
+      background: rgba(88,166,255,0.15);
+      border: 1px solid rgba(88,166,255,0.3);
+      border-radius: 8px; padding: 8px 16px;
+      color: #58a6ff; font-weight: 600; cursor: pointer;
+      font-size: 12px;
+    }
+    button:hover { background: rgba(88,166,255,0.25); }
+    .metrics-panel {
+      padding: 20px 30px;
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px;
+    }
+    .metric-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px; padding: 16px;
+    }
+    .metric-label { font-size: 10px; color: #667; letter-spacing: 1.5px; font-weight: 600; }
+    .metric-value { font-size: 28px; font-weight: 800; margin-top: 6px; }
+    .metric-value.blue { color: #58a6ff; }
+    .metric-value.green { color: #3fb950; }
+    .metric-value.purple { color: #bc8cff; }
+    .metric-value.yellow { color: #d29922; }
+    .metric-bar {
+      width: 100%; height: 4px; background: rgba(255,255,255,0.06);
+      border-radius: 2px; margin-top: 8px; overflow: hidden;
+    }
+    .metric-bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>📊 ACTIVITY VISUALIZER</h1>
+    <div class="controls">
+      <input id="username" type="text" placeholder="GitHub username..." value="sindresorhus">
+      <button id="analyze-btn">Analyze</button>
+    </div>
+  </div>
+
+  <div id="city-container"></div>
+
+  <div class="metrics-panel" id="metrics"></div>
+
+  <script type="module">
+    import { GitCity } from '../../sdk/src/index.js'
+
+    let city = null
+    const API = 'http://localhost:5000'
+
+    async function analyze(username) {
+      // Fetch metrics from API
+      const res = await fetch(`${API}/api/metrics/${username}`)
+      const data = await res.json()
+
+      // Update metrics panel
+      const panel = document.getElementById('metrics')
+      const m = data.metrics || {}
+      panel.innerHTML = `
+        <div class="metric-card">
+          <div class="metric-label">COMMITS</div>
+          <div class="metric-value blue">${(m.estimatedTotalCommits || m.commits || 0).toLocaleString()}</div>
+          <div class="metric-bar"><div class="metric-bar-fill" style="width:${Math.min(100, (m.commitScore || 0))}%;background:#58a6ff"></div></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">REPOSITORIES</div>
+          <div class="metric-value green">${(m.repos || 0).toLocaleString()}</div>
+          <div class="metric-bar"><div class="metric-bar-fill" style="width:${Math.min(100, (m.repoScore || 0))}%;background:#3fb950"></div></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">STARS</div>
+          <div class="metric-value yellow">${(m.totalStars || m.stars || 0).toLocaleString()}</div>
+          <div class="metric-bar"><div class="metric-bar-fill" style="width:${Math.min(100, (m.starScore || 0))}%;background:#d29922"></div></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">ACTIVITY SCORE</div>
+          <div class="metric-value purple">${(m.activityScore || 0).toFixed(1)}</div>
+          <div class="metric-bar"><div class="metric-bar-fill" style="width:${Math.min(100, (m.activityScore || 0))}%;background:#bc8cff"></div></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">TOP LANGUAGE</div>
+          <div class="metric-value" style="font-size:18px">${m.topLanguage || 'Unknown'}</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">BUILDING</div>
+          <div class="metric-value" style="font-size:14px">
+            H: ${data.building?.height?.toFixed(1) || '—'} &nbsp;
+            W: ${data.building?.width?.toFixed(1) || '—'}
+          </div>
+        </div>
+      `
+
+      // Render city
+      if (city) city.dispose()
+      city = new GitCity({
+        username,
+        apiUrl: API,
+        autoRotate: true,
+      })
+      await city.render('#city-container')
+    }
+
+    document.getElementById('analyze-btn').addEventListener('click', () => {
+      const username = document.getElementById('username').value.trim()
+      if (username) analyze(username)
+    })
+  </script>
+</body>
+</html>

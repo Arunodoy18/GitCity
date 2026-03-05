@@ -1,0 +1,12 @@
+{
+  "name": "@gitcity/plugin-language-colors",
+  "version": "1.0.0",
+  "description": "GitCity plugin — tints buildings by top programming language",
+  "type": "module",
+  "main": "index.js",
+  "keywords": ["gitcity", "plugin", "language", "color"],
+  "license": "MIT",
+  "peerDependencies": {
+    "@gitcity/engine": "^1.0.0"
+  }
+}

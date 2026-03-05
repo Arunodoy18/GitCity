@@ -1,0 +1,12 @@
+{
+  "name": "@gitcity/plugin-team-clusters",
+  "version": "1.0.0",
+  "description": "GitCity plugin — clusters developers from the same org into city districts",
+  "type": "module",
+  "main": "index.js",
+  "keywords": ["gitcity", "plugin", "team", "organization", "cluster"],
+  "license": "MIT",
+  "peerDependencies": {
+    "@gitcity/engine": "^1.0.0"
+  }
+}

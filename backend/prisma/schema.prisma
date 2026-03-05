@@ -1,0 +1,158 @@
+// GitCity — Prisma Schema (PostgreSQL)
+// Tables: users, cities, metrics, teams, team_members, leaderboard_snapshots,
+//         event_logs, developer_snapshots
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  githubId      Int       @unique @map("github_id")
+  username      String    @unique
+  displayName   String?   @map("display_name")
+  avatarUrl     String?   @map("avatar_url")
+  bio           String?
+  accessToken   String?   @map("access_token")  // encrypted in production
+  refreshToken  String?   @map("refresh_token")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  cities        City[]
+  metrics       Metric[]
+  snapshots     DeveloperSnapshot[]
+  teamMembers   TeamMember[]
+  ownedTeams    Team[]       @relation("TeamOwner")
+
+  @@map("users")
+}
+
+model City {
+  id           Int      @id @default(autoincrement())
+  userId       Int      @map("user_id")
+  citySnapshot Json?    @map("city_snapshot")   // full building layout snapshot
+  metricsData  Json?    @map("metrics_data")    // aggregated metrics at snapshot time
+  generatedAt  DateTime @default(now()) @map("generated_at")
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("cities")
+}
+
+model Metric {
+  id             Int      @id @default(autoincrement())
+  userId         Int      @map("user_id")
+  commits        Int      @default(0)
+  repos          Int      @default(0)
+  stars          Int      @default(0)
+  followers      Int      @default(0)
+  activityScore  Float    @default(0) @map("activity_score")
+  topLanguage    String?  @map("top_language")
+  recentActivity Boolean  @default(false) @map("recent_activity")
+  updatedAt      DateTime @default(now()) @map("updated_at")
+
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([updatedAt])
+  @@map("metrics")
+}
+
+// ─── Feature 2: Team Cities ─────────────────────────────────
+model Team {
+  id          Int       @id @default(autoincrement())
+  slug        String    @unique           // URL-friendly team name
+  name        String                       // Display name
+  description String?
+  avatarUrl   String?   @map("avatar_url")
+  ownerId     Int       @map("owner_id")
+  isPublic    Boolean   @default(true) @map("is_public")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  owner       User         @relation("TeamOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members     TeamMember[]
+
+  @@map("teams")
+}
+
+model TeamMember {
+  id       Int      @id @default(autoincrement())
+  teamId   Int      @map("team_id")
+  userId   Int      @map("user_id")
+  role     String   @default("member")  // owner, admin, member
+  joinedAt DateTime @default(now()) @map("joined_at")
+
+  team     Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@map("team_members")
+}
+
+// ─── Feature 5: Leaderboard Snapshots ───────────────────────
+model LeaderboardSnapshot {
+  id        Int      @id @default(autoincrement())
+  category  String                 // commits, stars, repos, activity
+  username  String
+  score     Float
+  rank      Int
+  metadata  Json?                  // extra data (language, avatar, etc.)
+  period    String   @default("all-time") // daily, weekly, monthly, all-time
+  takenAt   DateTime @default(now()) @map("taken_at")
+
+  @@index([category, period, rank])
+  @@index([takenAt])
+  @@map("leaderboard_snapshots")
+}
+
+// ─── Upgrade 1: Real-Time Event Pipeline — Audit Log ─────────
+model EventLog {
+  id          Int      @id @default(autoincrement())
+  source      String                    // "webhook", "poll", "manual"
+  eventType   String   @map("event_type") // "push", "star", "fork", "issues", "pull_request", etc.
+  username    String                    // GitHub username that triggered it
+  repo        String?                   // Full repo name (owner/repo)
+  payload     Json?                     // Raw event payload (trimmed)
+  processedAt DateTime? @map("processed_at") // when metrics were recomputed
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([username])
+  @@index([eventType])
+  @@index([createdAt])
+  @@index([source, createdAt])
+  @@map("event_logs")
+}
+
+// ─── Upgrade 3: City Snapshot Engine — Time-Series Store ─────
+model DeveloperSnapshot {
+  id             Int      @id @default(autoincrement())
+  userId         Int      @map("user_id")
+  username       String                   // denormalized for fast queries
+  commits        Int      @default(0)
+  repos          Int      @default(0)
+  stars          Int      @default(0)
+  followers      Int      @default(0)
+  activityScore  Float    @default(0) @map("activity_score")
+  topLanguage    String?  @map("top_language")
+  recentActivity Boolean  @default(false) @map("recent_activity")
+  buildingHeight Float?   @map("building_height")  // computed from commitScore
+  buildingGlow   Float?   @map("building_glow")    // computed from starScore
+  languageBreakdown Json? @map("language_breakdown") // { "JavaScript": 40, "Python": 30 }
+  snapshotDate   DateTime @map("snapshot_date")      // exact snapshot timestamp
+  granularity    String   @default("hourly")         // "hourly", "daily", "weekly"
+
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, snapshotDate, granularity])
+  @@index([username, snapshotDate])
+  @@index([snapshotDate])
+  @@index([granularity, snapshotDate])
+  @@map("developer_snapshots")
+}

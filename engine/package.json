@@ -1,0 +1,23 @@
+{
+  "name": "@gitcity/engine",
+  "version": "1.0.0",
+  "description": "GitCity core 3D city rendering engine — turns GitHub metrics into a 3D city",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./layout": "./src/layout.js",
+    "./building": "./src/building.js",
+    "./shaders": "./src/shaders.js",
+    "./chunking": "./src/chunking.js",
+    "./plugins": "./src/plugins.js"
+  },
+  "keywords": ["gitcity", "3d", "webgl", "github", "visualization", "city"],
+  "license": "MIT",
+  "peerDependencies": {
+    "three": ">=0.150.0"
+  },
+  "devDependencies": {
+    "three": "^0.183.0"
+  }
+}

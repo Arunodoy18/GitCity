@@ -1,0 +1,12 @@
+{
+  "name": "@gitcity/plugin-activity-heatmap",
+  "version": "1.0.0",
+  "description": "GitCity plugin — heatmap glow intensity based on commit activity",
+  "type": "module",
+  "main": "index.js",
+  "keywords": ["gitcity", "plugin", "heatmap", "activity"],
+  "license": "MIT",
+  "peerDependencies": {
+    "@gitcity/engine": "^1.0.0"
+  }
+}

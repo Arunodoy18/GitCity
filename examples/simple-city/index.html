@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitCity — Simple City</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #060610; color: #fff; font-family: system-ui, sans-serif; }
+    #city-container { width: 100vw; height: 80vh; }
+    .header {
+      padding: 20px 30px;
+      background: rgba(255,255,255,0.03);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .header h1 { font-size: 20px; font-weight: 800; letter-spacing: 2px; }
+    .header p { font-size: 12px; color: #667; margin-top: 4px; }
+    .controls {
+      padding: 15px 30px;
+      display: flex; gap: 12px;
+    }
+    input {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; padding: 8px 16px;
+      color: #fff; font-size: 14px; outline: none;
+      width: 250px;
+    }
+    button {
+      background: rgba(88,166,255,0.15);
+      border: 1px solid rgba(88,166,255,0.3);
+      border-radius: 8px; padding: 8px 20px;
+      color: #58a6ff; font-weight: 600; cursor: pointer;
+      font-size: 13px;
+    }
+    button:hover { background: rgba(88,166,255,0.25); }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🏙️ GITCITY — SIMPLE CITY</h1>
+    <p>Enter a GitHub username to visualize their coding activity as a 3D building</p>
+  </div>
+
+  <div class="controls">
+    <input id="username" type="text" placeholder="GitHub username..." value="torvalds">
+    <button id="render-btn">Render City</button>
+  </div>
+
+  <div id="city-container"></div>
+
+  <script type="module">
+    import { GitCity } from '../../sdk/src/index.js'
+
+    let city = null
+
+    document.getElementById('render-btn').addEventListener('click', async () => {
+      const username = document.getElementById('username').value.trim()
+      if (!username) return
+
+      if (city) city.dispose()
+
+      city = new GitCity({
+        username,
+        apiUrl: 'http://localhost:5000',
+        autoRotate: true,
+      })
+
+      await city.render('#city-container')
+
+      city.on('buildingClick', (user) => {
+        alert(`${user.username}: ${user.commits || '?'} commits, ${user.repos || '?'} repos`)
+      })
+    })
+  </script>
+</body>
+</html>

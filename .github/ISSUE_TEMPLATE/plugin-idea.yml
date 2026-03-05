@@ -1,0 +1,82 @@
+name: Plugin Idea
+description: Propose a new plugin for GitCity
+title: "[Plugin]: "
+labels: ["plugin", "enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have an idea for a GitCity plugin? We'd love to hear it! Plugins are the primary way to extend the city visualization.
+
+  - type: input
+    id: name
+    attributes:
+      label: Plugin Name
+      description: A short, descriptive name for the plugin.
+      placeholder: e.g., commit-timeline, star-particles, code-weather
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What does this plugin do? How does it change the city visualization?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: hooks
+    attributes:
+      label: Plugin Hooks Used
+      description: Which plugin hooks would this use?
+      multiple: true
+      options:
+        - modifyBuilding — Alter building appearance
+        - modifyCity — Alter city layout
+        - addOverlayLayer — Add UI overlays
+        - addMetricProvider — Supply custom metrics
+    validations:
+      required: true
+
+  - type: textarea
+    id: example
+    attributes:
+      label: Example Behavior
+      description: Give a concrete example of how buildings or the city would change.
+      placeholder: |
+        Example: Buildings for repos with >1000 stars would have
+        a golden glow effect and particle emitter at the top.
+
+  - type: dropdown
+    id: data-source
+    attributes:
+      label: Data Source
+      description: Where does the plugin get its data?
+      options:
+        - Existing GitHub API data (repos, commits, stars)
+        - Additional GitHub API calls needed
+        - External API (specify in context)
+        - User-configured data
+        - No additional data needed
+
+  - type: textarea
+    id: visual
+    attributes:
+      label: Visual Reference
+      description: Add mockups, screenshots, or links to similar visualizations.
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      options:
+        - label: I'd like to implement this plugin myself
+        - label: I need help implementing this
+        - label: I just want to suggest the idea
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Any other information about the plugin idea.

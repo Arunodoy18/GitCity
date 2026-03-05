@@ -1,0 +1,9 @@
+# Configuration for blank issues
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation
+    url: https://gitcity.dev
+    about: Check our docs before opening an issue
+  - name: Discussions
+    url: https://github.com/gitcity/GitCity/discussions
+    about: Ask questions and share ideas

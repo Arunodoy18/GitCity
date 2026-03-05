@@ -1,0 +1,15 @@
+{
+  "name": "gitcity-sdk",
+  "version": "1.0.0",
+  "description": "GitCity SDK — Embed 3D GitHub city visualizations in any website",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "keywords": ["gitcity", "sdk", "github", "3d", "visualization", "embed", "webgl"],
+  "license": "MIT",
+  "dependencies": {
+    "three": "^0.183.0"
+  }
+}

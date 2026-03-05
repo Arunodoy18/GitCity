@@ -1,0 +1,54 @@
+# ============================================
+# Render Blueprint — GitCity Backend
+# ============================================
+# This file tells Render how to deploy GitCity.
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  # ─── Web Service (Node.js Backend) ─────────────────────────
+  - type: web
+    name: gitcity-backend
+    runtime: node
+    region: oregon
+    plan: free
+    rootDir: backend
+    buildCommand: npm install && npx prisma generate
+    startCommand: npx prisma migrate deploy && node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: FRONTEND_URL
+        sync: false  # Set manually to your Netlify URL
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
+      - key: GITHUB_CALLBACK_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true  # Render auto-generates a secure random value
+      - key: DATABASE_URL
+        fromDatabase:
+          name: gitcity-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: gitcity-redis
+          type: redis
+          property: connectionString
+      - key: GITHUB_WEBHOOK_SECRET
+        sync: false
+
+databases:
+  # ─── PostgreSQL ────────────────────────────────────────────
+  - name: gitcity-db
+    plan: free
+    region: oregon
+    databaseName: gitcity
+    user: gitcity
+
+  # ─── Redis ─────────────────────────────────────────────────
+  - name: gitcity-redis
+    plan: free
+    region: oregon
+    maxmemoryPolicy: allkeys-lru

@@ -1,0 +1,86 @@
+name: Good First Issue
+description: Flag an area that would be a great entry point for new contributors
+title: "[Good First Issue]: "
+labels: ["good first issue", "help wanted"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template to identify tasks that are great for newcomers.
+        Maintainers: please fill in clear guidance so first-time contributors can succeed.
+
+  - type: textarea
+    id: task
+    attributes:
+      label: Task Description
+      description: Clearly describe what needs to be done.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Frontend (WebGL city)
+        - Backend (API server)
+        - Engine (@gitcity/engine)
+        - SDK (gitcity-sdk)
+        - Plugins
+        - Documentation
+        - Tests
+        - DevOps
+    validations:
+      required: true
+
+  - type: dropdown
+    id: difficulty
+    attributes:
+      label: Difficulty
+      options:
+        - Beginner — No prior GitCity knowledge needed
+        - Intermediate — Some familiarity with the codebase
+    validations:
+      required: true
+
+  - type: textarea
+    id: files
+    attributes:
+      label: Relevant Files
+      description: List the files that would need to be changed.
+      placeholder: |
+        - frontend/src/ui/HUD.jsx
+        - engine/src/layout.js
+    validations:
+      required: true
+
+  - type: textarea
+    id: guidance
+    attributes:
+      label: Implementation Guidance
+      description: Step-by-step hints for how to approach this task.
+      placeholder: |
+        1. Read the existing code in ...
+        2. The function to modify is ...
+        3. Add the new behavior by ...
+        4. Test by running ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: resources
+    attributes:
+      label: Helpful Resources
+      description: Links to docs, tutorials, or related code that would help.
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: How will we know this task is complete?
+      placeholder: |
+        - [ ] Feature works as described
+        - [ ] No console errors
+        - [ ] Documentation updated if needed
+    validations:
+      required: true
