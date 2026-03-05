@@ -55,6 +55,9 @@ function App() {
   const [flyTarget, setFlyTarget] = useState(null)
   const [cameraPosition, setCameraPosition] = useState([150, 80, 150])
 
+  // Personal city mode: when logged in, show only the user's own building initially
+  const [personalCity, setPersonalCity] = useState(true)
+
   // Wave 1C: Heatmap overlay toggle
   const [heatmapEnabled, setHeatmapEnabled] = useState(false)
 
@@ -72,6 +75,31 @@ function App() {
 
   // SaaS: Authentication
   const { user: authUser, loading: authLoading, login, logout } = useAuth()
+
+  // Auto-fetch authenticated user's GitHub data on login
+  const [authCityLoading, setAuthCityLoading] = useState(false)
+  useEffect(() => {
+    if (!authUser?.username) return
+    // Already fetched
+    if (liveUsers.some(u => u.username.toLowerCase() === authUser.username.toLowerCase())) return
+
+    setAuthCityLoading(true)
+    fetchUserData(authUser.username).then(data => {
+      if (data) {
+        setLiveUsers(prev => {
+          if (prev.some(u => u.username.toLowerCase() === data.username.toLowerCase())) return prev
+          return [data, ...prev]
+        })
+        setSelectedUser(data)
+        setPersonalCity(true)
+      }
+    }).finally(() => setAuthCityLoading(false))
+  }, [authUser?.username]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Reset to personal city on logout
+  useEffect(() => {
+    if (!authUser) setPersonalCity(false)
+  }, [authUser])
 
   // ─── Premium Features State ─────────────────────────────
   const [activeFeature, setActiveFeature] = useState('home')
@@ -100,11 +128,20 @@ function App() {
   const allUsers = useMemo(() => {
     // If viewing team city, show only team users
     if (activeFeature === 'teams' && teamUsers) return teamUsers
-    // Normal city: live + mock
+
+    // Personal city: show only the authenticated user's building
+    if (personalCity && authUser) {
+      const authBuilding = liveUsers.find(
+        u => u.username.toLowerCase() === authUser.username.toLowerCase()
+      )
+      if (authBuilding) return [authBuilding]
+    }
+
+    // Full city: live + mock
     const liveUsernames = new Set(liveUsers.map(u => u.username.toLowerCase()))
     const filtered = mockUsers.filter(u => !liveUsernames.has(u.username.toLowerCase()))
     return [...liveUsers, ...filtered]
-  }, [mockUsers, liveUsers, activeFeature, teamUsers])
+  }, [mockUsers, liveUsers, activeFeature, teamUsers, personalCity, authUser])
 
   // District layout computation (Feature 6)
   const districtData = useMemo(() => {
@@ -218,6 +255,33 @@ function App() {
 
       {/* UI Overlay */}
       <AuthPanel user={authUser} loading={authLoading} onLogin={login} onLogout={logout} />
+
+      {/* Personal city banner — shown when logged in user sees only their building */}
+      {personalCity && authUser && !authCityLoading && (
+        <div style={{
+          position: 'absolute', top: 60, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 180, display: 'flex', alignItems: 'center', gap: 12,
+          padding: '10px 20px', background: 'rgba(0,0,0,0.6)',
+          border: '1px solid rgba(100,200,255,0.2)', borderRadius: 12,
+          backdropFilter: 'blur(16px)', animation: 'fadeIn 0.5s ease',
+        }}>
+          <span style={{ color: '#aad', fontSize: 13, fontWeight: 500 }}>
+            🏠 Your City
+          </span>
+          <button
+            onClick={() => setPersonalCity(false)}
+            style={{
+              padding: '6px 14px', background: 'rgba(100,200,255,0.12)',
+              border: '1px solid rgba(100,200,255,0.3)', borderRadius: 8,
+              color: '#8cf', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              transition: 'all 0.2s',
+            }}
+          >
+            Explore Full City →
+          </button>
+        </div>
+      )}
+      {authCityLoading && <LoadingOverlay message="Loading your city..." />}
       <SearchBar
         onSearch={handleSearch}
         userCount={allUsers.length}

@@ -13,6 +13,46 @@ import prisma from '../db/prisma.js'
 const router = Router()
 
 /**
+ * GET /api/snapshots/engine/status
+ *
+ * Snapshot engine health and statistics.
+ */
+router.get('/engine/status', async (_req, res) => {
+  try {
+    const engineStats = getSnapshotStats()
+
+    // Count total snapshots in DB
+    const totalInDb = await prisma.developerSnapshot.count().catch(() => 0)
+    const hourlyCount = await prisma.developerSnapshot.count({
+      where: { granularity: 'hourly' },
+    }).catch(() => 0)
+    const dailyCount = await prisma.developerSnapshot.count({
+      where: { granularity: 'daily' },
+    }).catch(() => 0)
+
+    // Unique users with snapshots
+    const uniqueUsers = await prisma.developerSnapshot.findMany({
+      distinct: ['username'],
+      select: { username: true },
+    }).catch(() => [])
+
+    res.json({
+      status: 'ok',
+      engine: engineStats,
+      database: {
+        totalSnapshots: totalInDb,
+        hourlySnapshots: hourlyCount,
+        dailySnapshots: dailyCount,
+        uniqueUsers: uniqueUsers.length,
+      },
+      timestamp: new Date().toISOString(),
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+/**
  * GET /api/snapshots/:username
  *
  * Get time-series snapshots for a user.
@@ -130,46 +170,6 @@ router.get('/:username/delta', authOptional, async (req, res, next) => {
     })
   } catch (err) {
     next(err)
-  }
-})
-
-/**
- * GET /api/snapshots/engine/status
- *
- * Snapshot engine health and statistics.
- */
-router.get('/engine/status', async (_req, res) => {
-  try {
-    const engineStats = getSnapshotStats()
-
-    // Count total snapshots in DB
-    const totalInDb = await prisma.developerSnapshot.count().catch(() => 0)
-    const hourlyCount = await prisma.developerSnapshot.count({
-      where: { granularity: 'hourly' },
-    }).catch(() => 0)
-    const dailyCount = await prisma.developerSnapshot.count({
-      where: { granularity: 'daily' },
-    }).catch(() => 0)
-
-    // Unique users with snapshots
-    const uniqueUsers = await prisma.developerSnapshot.findMany({
-      distinct: ['username'],
-      select: { username: true },
-    }).catch(() => [])
-
-    res.json({
-      status: 'ok',
-      engine: engineStats,
-      database: {
-        totalSnapshots: totalInDb,
-        hourlySnapshots: hourlyCount,
-        dailySnapshots: dailyCount,
-        uniqueUsers: uniqueUsers.length,
-      },
-      timestamp: new Date().toISOString(),
-    })
-  } catch (err) {
-    res.status(500).json({ error: err.message })
   }
 })
 

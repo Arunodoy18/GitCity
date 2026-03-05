@@ -54,8 +54,7 @@ router.get('/', authOptional, async (req, res, next) => {
       'kelseyhightower', 'jessfraz', 'mitchellh', 'hashicorp', 'docker',
       'kubernetes', 'etcd-io', 'containerd', 'grafana', 'prometheus',
       // Mobile & desktop
-      'nicklockwood', 'onevcat', 'JetBrains', 'nicklockwood', 'nicklockwood',
-      'nicklockwood', 'nicklockwood', 'nicklockwood', 'nicklockwood', 'nicklockwood',
+      'nicklockwood', 'onevcat', 'JetBrains', 'realm', 'square',
       // DevTools
       'sharkdp', 'junegunn', 'jesseduffield', 'charmbracelet', 'withfig',
       'wez', 'alacritty', 'neovim', 'helix-editor', 'zed-industries',

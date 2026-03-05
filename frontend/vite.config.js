@@ -9,21 +9,11 @@ export default defineConfig({
   build: {
     // Three.js is ~1.1 MB minified — this is inherent to WebGL; suppress nuisance warning
     chunkSizeWarningLimit: 1200,
-    rolldownOptions: {
+    rollupOptions: {
       output: {
-        codeSplitting: {
-          groups: [
-            {
-              name: 'vendor-three',
-              test: /three/,
-              priority: 10,
-            },
-            {
-              name: 'vendor-react',
-              test: /react|react-dom|scheduler/,
-              priority: 5,
-            },
-          ],
+        manualChunks: {
+          'vendor-three': ['three'],
+          'vendor-react': ['react', 'react-dom'],
         },
       },
     },

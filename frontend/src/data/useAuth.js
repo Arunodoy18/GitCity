@@ -20,18 +20,29 @@ export function useAuth() {
   }
 
   const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(hasToken)
+  const [loading, setLoading] = useState(hasToken())
 
   // On mount: check for token in URL params (OAuth redirect) or localStorage
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const urlToken = params.get('token')
+    const urlUser = params.get('user')
 
     if (urlToken) {
       // Store token from OAuth callback redirect
       localStorage.setItem('gitcity_token', urlToken)
       // Clean URL
       window.history.replaceState({}, '', window.location.pathname)
+
+      // If user data was included in the redirect, use it directly (skip /auth/me)
+      if (urlUser) {
+        try {
+          const userData = JSON.parse(urlUser)
+          setUser(userData)
+          setLoading(false)
+          return
+        } catch { /* fall through to fetchMe */ }
+      }
     }
 
     // Check if we have a token and fetch user profile

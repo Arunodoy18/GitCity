@@ -44,7 +44,7 @@ router.get('/github/callback', async (req, res) => {
   }
 
   try {
-    // 1. Exchange code for access token
+    // 1. Exchange code for access token (with 10s timeout)
     const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
       method: 'POST',
       headers: {
@@ -57,6 +57,7 @@ router.get('/github/callback', async (req, res) => {
         code,
         redirect_uri: GITHUB_CALLBACK_URL,
       }),
+      signal: AbortSignal.timeout(10_000),
     })
     const tokenData = await tokenRes.json()
 
@@ -67,12 +68,13 @@ router.get('/github/callback', async (req, res) => {
 
     const accessToken = tokenData.access_token
 
-    // 2. Fetch GitHub user profile
+    // 2. Fetch GitHub user profile (with 10s timeout)
     const profileRes = await fetch('https://api.github.com/user', {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'User-Agent': 'GitCity-SaaS',
       },
+      signal: AbortSignal.timeout(10_000),
     })
     const profile = await profileRes.json()
 
@@ -105,16 +107,23 @@ router.get('/github/callback', async (req, res) => {
     // 4. Generate JWT
     const jwt = generateToken(user)
 
-    // 5. Cache session mapping
-    await cacheSet(`session:user:${user.id}`, {
+    // 5. Cache session (fire-and-forget — don't block redirect)
+    cacheSet(`session:user:${user.id}`, {
       id: user.id,
       username: user.username,
       avatarUrl: user.avatarUrl,
       githubId: user.githubId,
-    }, 7 * 24 * 3600) // 7 days
+    }, 7 * 24 * 3600).catch(() => {}) // 7 days
 
-    // 6. Redirect to frontend with token
-    // Set as httpOnly cookie AND pass as query param (frontend picks one)
+    // 6. Redirect to frontend with token + user data (avoids extra /auth/me call)
+    const userData = encodeURIComponent(JSON.stringify({
+      id: user.id,
+      username: user.username,
+      displayName: user.displayName,
+      avatarUrl: user.avatarUrl,
+      bio: user.bio,
+    }))
+
     res.cookie('gitcity_token', jwt, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -122,7 +131,7 @@ router.get('/github/callback', async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     })
 
-    res.redirect(`${FRONTEND_URL}?token=${jwt}`)
+    res.redirect(`${FRONTEND_URL}?token=${jwt}&user=${userData}`)
 
   } catch (err) {
     console.error(`[OAuth] Callback error:`, err)
