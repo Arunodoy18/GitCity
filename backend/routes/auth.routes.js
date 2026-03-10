@@ -3,6 +3,20 @@ import dotenv from 'dotenv'
 import prisma from '../db/prisma.js'
 import { generateToken, authRequired } from '../middleware/auth.middleware.js'
 import { cacheSet, cacheDel } from '../cache/redis.client.js'
+import { fetchUserData } from '../services/github.service.js'
+import { getOrComputeMetrics } from '../services/metrics.service.js'
+import { createSnapshot } from '../services/snapshotEngine.js'
+
+/**
+ * Provision a new user's city in the background (fire-and-forget).
+ * Fetches their GitHub data, computes metrics, and stores the first snapshot.
+ */
+async function provisionNewUserCity(user, accessToken) {
+  const userData = await fetchUserData(user.username, accessToken)
+  await getOrComputeMetrics(user.id, userData)
+  await createSnapshot(user.id, userData, 'daily').catch(() => {})
+  console.log(`[Auth] City provisioned for new user: ${user.username}`)
+}
 
 dotenv.config()
 
@@ -104,10 +118,18 @@ router.get('/github/callback', async (req, res) => {
 
     console.log(`[Auth] User ${user.username} (id:${user.id}) logged in`)
 
-    // 4. Generate JWT
+    // 4. Provision city for first-time sign-ups (fire-and-forget, non-blocking)
+    const hasMetrics = await prisma.metric.count({ where: { userId: user.id } })
+    if (hasMetrics === 0) {
+      provisionNewUserCity(user, accessToken).catch(err => {
+        console.warn(`[Auth] City provisioning failed for ${user.username}: ${err.message}`)
+      })
+    }
+
+    // 5. Generate JWT
     const jwt = generateToken(user)
 
-    // 5. Cache session (fire-and-forget — don't block redirect)
+    // 6. Cache session (fire-and-forget — don't block redirect)
     cacheSet(`session:user:${user.id}`, {
       id: user.id,
       username: user.username,
@@ -115,7 +137,7 @@ router.get('/github/callback', async (req, res) => {
       githubId: user.githubId,
     }, 7 * 24 * 3600).catch(() => {}) // 7 days
 
-    // 6. Redirect to frontend with token + user data (avoids extra /auth/me call)
+    // 7. Redirect to frontend with token + user data (avoids extra /auth/me call)
     const userData = encodeURIComponent(JSON.stringify({
       id: user.id,
       username: user.username,
