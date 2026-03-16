@@ -21,6 +21,8 @@ export function useAuth() {
 
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(hasToken())
+  const [loginPending, setLoginPending] = useState(false)
+  const [loginError, setLoginError] = useState(null)
 
   // Warm the backend in the background to reduce Render cold-start lag on sign-in.
   useEffect(() => {
@@ -67,21 +69,38 @@ export function useAuth() {
   }, [])
 
   const login = useCallback(async () => {
-    // Best-effort warmup before navigating away to OAuth.
-    await warmBackend({ timeoutMs: 12000 }).catch(() => {})
+    if (loginPending) return
+
+    setLoginPending(true)
+    setLoginError(null)
+
+    const firstWarm = await warmBackend({ timeoutMs: 12000 }).catch(() => false)
+    const secondWarm = firstWarm ? true : await warmBackend({ timeoutMs: 12000 }).catch(() => false)
+
+    if (!secondWarm) {
+      setLoginPending(false)
+      setLoginError('Backend is waking up. Please wait 20-30 seconds and click Sign in again.')
+      return
+    }
+
     window.location.href = getLoginUrl()
-  }, [])
+  }, [loginPending])
 
   const logout = useCallback(async () => {
     await apiLogout()
     setUser(null)
+    setLoginError(null)
   }, [])
+
+  const clearLoginError = useCallback(() => setLoginError(null), [])
 
   return {
     user,
-    loading,
+    loading: loading || loginPending,
     login,
     logout,
     isAuthenticated: !!user,
+    loginError,
+    clearLoginError,
   }
 }

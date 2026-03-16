@@ -62,21 +62,22 @@ class PerformanceManager {
   /**
    * Call at the end of each frame (after render)
    * @param {WebGLRenderer} gl — Three.js renderer
+   * @param {number|null} frameTimeMs — optional explicit frame delta in ms
    */
-  endFrame(gl) {
+  endFrame(gl, frameTimeMs = null) {
     const now = performance.now()
-    const dt = now - this._frameStart
+    const dt = Math.max(
+      0.001,
+      frameTimeMs ?? (this._frameStart ? now - this._frameStart : now - this._lastTime)
+    )
 
     // Store frame time
     this._frameTimes[this._frameIndex % 120] = dt
     this._frameIndex++
     this._frameCount = Math.min(this._frameIndex, 120)
 
-    // FPS from elapsed time
-    const elapsed = now - this._lastTime
-    if (elapsed > 0) {
-      this._fps = 1000 / elapsed
-    }
+    // FPS from current frame delta
+    this._fps = 1000 / dt
     this._lastTime = now
     this._frameTime = dt
 

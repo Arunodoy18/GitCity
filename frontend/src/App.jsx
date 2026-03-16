@@ -82,7 +82,14 @@ function App() {
   const gpuReport = useWebGPU()
 
   // SaaS: Authentication
-  const { user: authUser, loading: authLoading, login, logout } = useAuth()
+  const {
+    user: authUser,
+    loading: authLoading,
+    login,
+    logout,
+    loginError,
+    clearLoginError,
+  } = useAuth()
 
   // Hide landing once authenticated
   useEffect(() => {
@@ -243,6 +250,12 @@ function App() {
     if (feature === 'districts') setDistrictMode(true)
     else setDistrictMode(false)
   }, [])
+
+  const toastMessage = loginError || error
+  const dismissToast = useCallback(() => {
+    clearError()
+    clearLoginError()
+  }, [clearError, clearLoginError])
 
   // Track which usernames to monitor for live commits
   const trackedUsernames = useMemo(() => {
@@ -444,7 +457,7 @@ function App() {
         selectedUser={selectedUser}
       />
       {loading && <LoadingOverlay message={`Fetching from GitHub...`} />}
-      <ErrorToast message={error} onDismiss={clearError} />
+      <ErrorToast message={toastMessage} onDismiss={dismissToast} />
       <UserCard user={selectedUser} onClose={() => setSelectedUser(null)} />
     </div>
   )

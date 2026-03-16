@@ -14,12 +14,9 @@ import { perfManager } from '../core/PerformanceManager'
 export function PerfOverlayInner({ targetRef }) {
   const { gl } = useThree()
 
-  useFrame(() => {
-    perfManager.beginFrame()
-    // endFrame is called at end of useFrame (after render)
-    // We use a slight trick: endFrame is called on the *next* useFrame
-    // This gives us the previous frame's stats, which is standard
-    perfManager.endFrame(gl)
+  useFrame((_, delta) => {
+    // Use the renderer-provided frame delta to avoid timing jitter.
+    perfManager.endFrame(gl, delta * 1000)
 
     const m = perfManager.getMetrics()
 

@@ -1,5 +1,5 @@
 import { useRef, useMemo, useEffect } from 'react'
-import { useThree, useFrame } from '@react-three/fiber'
+import { useFrame } from '@react-three/fiber'
 import { Object3D, Color, ShaderMaterial, FrontSide, InstancedBufferAttribute, Vector3 } from 'three'
 import { generateBuildingProps } from './buildingProps'
 
@@ -108,7 +108,7 @@ const fragmentShader = /* glsl */ `
 
     // Per-instance tinted color
     vec3 tintedColor = vColor * (vec3(1.0) + vTint * 0.3);
-    float dayBright = mix(0.3, 1.0, uDayNightFactor);
+    float dayBright = mix(0.55, 1.0, uDayNightFactor);
     vec3 buildingDark = tintedColor * dayBright;
 
     // === FAR LOD: flat silhouette ===
@@ -126,7 +126,7 @@ const fragmentShader = /* glsl */ `
     }
 
     if (!isSideFace) {
-      vec3 roofColor = buildingDark * 0.4;
+      vec3 roofColor = buildingDark * 0.55;
       if (uHeatmapEnabled > 0.5) {
         roofColor = mix(roofColor, heatmapColor(vCommitScore) * 0.5, 0.6);
       }
@@ -180,7 +180,7 @@ const fragmentShader = /* glsl */ `
     vec3 windowColor = windowLit * vBrightness * flicker * nightWindowStrength;
 
     vec3 lightDir = normalize(vec3(0.5, 1.0, 0.3));
-    float diff = max(dot(vNormal, lightDir), 0.0) * 0.3 + 0.15;
+    float diff = max(dot(vNormal, lightDir), 0.0) * 0.35 + 0.28;
     float sunlight = max(dot(vNormal, normalize(vec3(0.3, 0.8, 0.5))), 0.0);
     diff += sunlight * uDayNightFactor * 0.5;
     vec3 wallColor = buildingDark * diff;
@@ -234,7 +234,6 @@ export default function InstancedBuildings({
   boundingSphere = null,
 }) {
   const meshRef = useRef()
-  const { raycaster } = useThree()
 
   const count = users.length
 
@@ -339,15 +338,11 @@ export default function InstancedBuildings({
 
   // Click detection
   const handleClick = (e) => {
-    if (!meshRef.current) return
     e.stopPropagation()
-    const intersects = raycaster.intersectObject(meshRef.current)
-    if (intersects.length > 0) {
-      const instanceId = intersects[0].instanceId
-      if (instanceId !== undefined && users[instanceId]) {
-        onBuildingClick?.(users[instanceId])
-      }
-    }
+    if (typeof e.instanceId !== 'number') return
+    const user = users[e.instanceId]
+    if (!user) return
+    onBuildingClick?.(user)
   }
 
   return (

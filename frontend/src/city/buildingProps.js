@@ -10,8 +10,8 @@ import { Color } from 'three'
  * @returns {object} { height, width, depth, emissive, emissiveIntensity, baseColor }
  */
 export function generateBuildingProps({ commits, repos, recentActivity }) {
-  // Height = commits / 50, clamped between 1 and 60
-  const height = Math.max(1, Math.min(60, commits / 50))
+  // Height = commits / 25, clamped between 2 and 80 for better visibility at city scale
+  const height = Math.max(2, Math.min(80, commits / 25))
 
   // Width = repos * 0.5, clamped between 1 and 8
   const width = Math.max(1, Math.min(8, repos * 0.5))
@@ -22,7 +22,7 @@ export function generateBuildingProps({ commits, repos, recentActivity }) {
 
   // Color based on commit count — low=blue, mid=purple, high=cyan
   const hue = (commits % 360) / 360
-  const baseColor = new Color().setHSL(hue, 0.6, 0.15)
+  const baseColor = new Color().setHSL(hue, 0.65, 0.22)
 
   // Active users glow
   const emissive = recentActivity
