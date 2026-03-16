@@ -1,6 +1,6 @@
 import { useRef, useMemo, useEffect } from 'react'
 import { useThree, useFrame } from '@react-three/fiber'
-import { Object3D, Color, ShaderMaterial, FrontSide, InstancedBufferAttribute } from 'three'
+import { Object3D, Color, ShaderMaterial, FrontSide, InstancedBufferAttribute, Vector3 } from 'three'
 import { generateBuildingProps } from './buildingProps'
 
 const tempObject = new Object3D()
@@ -35,6 +35,7 @@ const vertexShader = /* glsl */ `
   attribute float instanceBrightness;
   attribute vec3 instanceTint;
   attribute float instanceCommitScore;
+  attribute float instanceSeed;
 
   uniform vec3 uCameraPos;
 
@@ -44,7 +45,7 @@ const vertexShader = /* glsl */ `
   varying vec3 vWorldPosition;
   varying vec3 vLocalPosition;
   varying float vBrightness;
-  varying float vInstanceId;
+  varying float vInstanceSeed;
   varying float vCommitScore;
   varying float vCameraDist;
 
@@ -55,7 +56,7 @@ const vertexShader = /* glsl */ `
     vLocalPosition = position;
     vBrightness = instanceBrightness;
     vCommitScore = instanceCommitScore;
-    vInstanceId = float(gl_InstanceID);
+    vInstanceSeed = instanceSeed;
 
     vec4 worldPos = modelMatrix * instanceMatrix * vec4(position, 1.0);
     vWorldPosition = worldPos.xyz;
@@ -81,7 +82,7 @@ const fragmentShader = /* glsl */ `
   varying vec3 vWorldPosition;
   varying vec3 vLocalPosition;
   varying float vBrightness;
-  varying float vInstanceId;
+  varying float vInstanceSeed;
   varying float vCommitScore;
   varying float vCameraDist;
 
@@ -152,13 +153,13 @@ const fragmentShader = /* glsl */ `
     float wy = step(windowPadding, cellUV.y) * step(cellUV.y, 1.0 - windowPadding);
     float windowMask = wx * wy;
 
-    float windowSeed = hash(cell + vec2(vInstanceId * 0.01, vInstanceId * 0.007));
+    float windowSeed = hash(cell + vec2(vInstanceSeed * 0.01, vInstanceSeed * 0.007));
     float windowOn = step(0.45, windowSeed);
 
     // === FLICKER — only at near LOD ===
     float flicker = 1.0;
     if (nearToMid < 0.5 && vBrightness > 0.5 && windowOn > 0.5) {
-      float flickerSeed = hash(cell * 3.17 + vec2(vInstanceId * 0.013));
+      float flickerSeed = hash(cell * 3.17 + vec2(vInstanceSeed * 0.013));
       // Slow breathe
       if (flickerSeed > 0.88) {
         float breatheSpeed = 1.5 + flickerSeed * 3.0;
@@ -166,7 +167,7 @@ const fragmentShader = /* glsl */ `
         flicker *= mix(breathe, 1.0, nearToMid * 2.0);  // fade out flicker toward mid
       }
       // Micro-spark
-      float sparkSeed = hash(cell * 7.13 + vec2(vInstanceId * 0.019));
+      float sparkSeed = hash(cell * 7.13 + vec2(vInstanceSeed * 0.019));
       if (sparkSeed > 0.95) {
         float spark = 0.9 + 0.1 * sin(uTime * (8.0 + sparkSeed * 12.0));
         flicker *= mix(spark, 1.0, nearToMid * 2.0);
@@ -214,7 +215,7 @@ const buildingMaterial = new ShaderMaterial({
     uTime: { value: 0.0 },
     uHeatmapEnabled: { value: 0.0 },
     uDayNightFactor: { value: 0.0 },
-    uCameraPos: { value: [0, 80, 150] },
+    uCameraPos: { value: new Vector3(0, 80, 150) },
     uLodNear: { value: 150.0 },
     uLodMid: { value: 400.0 },
   },
@@ -263,6 +264,7 @@ export default function InstancedBuildings({
     const brightnessArray = new Float32Array(count)
     const tintArray = new Float32Array(count * 3)
     const commitScoreArray = new Float32Array(count)
+    const seedArray = new Float32Array(count)
 
     for (let i = 0; i < count; i++) {
       const { height, width, depth, baseColor, emissive, emissiveIntensity } = buildingData[i]
@@ -295,6 +297,9 @@ export default function InstancedBuildings({
 
       // Commit score normalized 0..1
       commitScoreArray[i] = users[i].commits / maxCommits
+
+      // Stable per-instance seed for shader randomness
+      seedArray[i] = i + 1
     }
 
     mesh.geometry.setAttribute(
@@ -308,6 +313,10 @@ export default function InstancedBuildings({
     mesh.geometry.setAttribute(
       'instanceCommitScore',
       new InstancedBufferAttribute(commitScoreArray, 1)
+    )
+    mesh.geometry.setAttribute(
+      'instanceSeed',
+      new InstancedBufferAttribute(seedArray, 1)
     )
 
     mesh.instanceMatrix.needsUpdate = true
@@ -325,7 +334,7 @@ export default function InstancedBuildings({
     u.uTime.value = clock.elapsedTime
     u.uHeatmapEnabled.value = heatmapEnabled ? 1.0 : 0.0
     u.uDayNightFactor.value = dayNightFactor
-    u.uCameraPos.value = [camera.position.x, camera.position.y, camera.position.z]
+    u.uCameraPos.value.set(camera.position.x, camera.position.y, camera.position.z)
   })
 
   // Click detection
@@ -346,6 +355,7 @@ export default function InstancedBuildings({
       ref={meshRef}
       args={[null, null, count]}
       material={buildingMaterial}
+      frustumCulled={false}
       castShadow
       receiveShadow
       onClick={handleClick}

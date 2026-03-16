@@ -7,6 +7,29 @@
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
+/**
+ * Best-effort backend warmup to reduce cold-start delay before OAuth redirect.
+ * Returns true when the health endpoint responds, false otherwise.
+ */
+export async function warmBackend({ timeoutMs = 12000 } = {}) {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), timeoutMs)
+
+  try {
+    const res = await fetch(`${API_BASE}/api/health`, {
+      method: 'GET',
+      cache: 'no-store',
+      credentials: 'include',
+      signal: controller.signal,
+    })
+    return res.ok
+  } catch {
+    return false
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
 /** Get stored auth token */
 function getToken() {
   return localStorage.getItem('gitcity_token')

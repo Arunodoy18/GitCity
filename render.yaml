@@ -12,8 +12,9 @@ services:
     region: oregon
     plan: free
     rootDir: backend
-    buildCommand: npm install && npx prisma generate
-    startCommand: npx prisma db push && node server.js
+    buildCommand: npm install && npx prisma generate && npx prisma db push
+    startCommand: node server.js
+    healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production
@@ -35,6 +36,24 @@ services:
         sync: false  # Create a Redis instance manually in Render dashboard, then paste the URL here
       - key: GITHUB_WEBHOOK_SECRET
         sync: false
+
+  # ─── Uptime Cron (optional, keeps backend warm on low traffic) ─────────
+  # Note: Render cron jobs are paid services. This one pings /api/health every 14 min.
+  - type: cron
+    name: gitcity-uptime-ping
+    runtime: node
+    region: oregon
+    plan: starter
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node scripts/ping-health.js
+    schedule: "*/14 * * * *"
+    envVars:
+      - key: TARGET_HEALTH_HOSTPORT
+        fromService:
+          name: gitcity-backend
+          type: web
+          property: hostport
 
 databases:
   # ─── PostgreSQL ────────────────────────────────────────────

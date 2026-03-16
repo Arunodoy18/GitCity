@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { fetchMe, logout as apiLogout, getLoginUrl } from './api'
+import { fetchMe, logout as apiLogout, getLoginUrl, warmBackend } from './api'
 
 /**
  * useAuth — Authentication hook for GitCity.
@@ -21,6 +21,11 @@ export function useAuth() {
 
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(hasToken())
+
+  // Warm the backend in the background to reduce Render cold-start lag on sign-in.
+  useEffect(() => {
+    warmBackend({ timeoutMs: 5000 }).catch(() => {})
+  }, [])
 
   // On mount: check for token in URL params (OAuth redirect) or localStorage
   useEffect(() => {
@@ -61,7 +66,9 @@ export function useAuth() {
     }
   }, [])
 
-  const login = useCallback(() => {
+  const login = useCallback(async () => {
+    // Best-effort warmup before navigating away to OAuth.
+    await warmBackend({ timeoutMs: 12000 }).catch(() => {})
     window.location.href = getLoginUrl()
   }, [])
 
